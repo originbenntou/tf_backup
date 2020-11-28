@@ -1,0 +1,11 @@
+/*
+# トレンド
+*/
+
+use trend;
+INSERT INTO history VALUES (0, "9bsv0s2v7s8002m4ap2g", 1, 1, "2020-06-25 10:00:00", "2020-06-25 10:00:00");
+INSERT INTO history VALUES (0, "9bsv0s2v7s8002m4ap2g", 2, 1, "2020-06-25 10:00:00", "2020-06-25 10:00:00");
+INSERT INTO history VALUES (0, "9bsv0s2v7s8002m4ap2g", 3, 1, "2020-06-25 10:00:00", "2020-06-25 10:00:00");
+INSERT INTO history VALUES (0, "9bsv0s6jivi002g0e6cg", 1, 1, "2020-06-25 10:00:00", "2020-06-25 10:00:00");
+INSERT INTO history VALUES (0, "9bsv0s6jivi002g0e6cg", 2, 1, "2020-06-25 10:00:00", "2020-06-25 10:00:00");
+INSERT INTO history VALUES (0, "9bsv0s6rj0h002jo1ri0", 1, 1, "2020-06-25 10:00:00", "2020-06-25 10:00:00");

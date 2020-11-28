@@ -1,0 +1,32 @@
+steps:
+  - name: "gcr.io/cloud-builders/docker"
+    args:
+      [
+        "build",
+        "-t",
+        "gcr.io/$PROJECT_ID/trend-find-gateway:$SHORT_SHA",
+        "-t",
+        "gcr.io/$PROJECT_ID/trend-find-gateway:latest",
+        "--build-arg",
+        "GITHUB_ACCESS_TOKEN=$_GITHUB_ACCESS_TOKEN",
+        ".",
+      ]
+    dir: "gateway"
+  # upload image
+  - name: "gcr.io/cloud-builders/docker"
+    args: ["push", "gcr.io/$PROJECT_ID/trend-find-gateway:$SHORT_SHA"]
+  - name: "gcr.io/cloud-builders/docker"
+    args: ["push", "gcr.io/$PROJECT_ID/trend-find-gateway:latest"]
+  # upload gke
+  - name: "gcr.io/cloud-builders/kubectl"
+    args:
+      [
+        "set",
+        "image",
+        "deployment",
+        "gateway",
+        "gateway=gcr.io/$PROJECT_ID/trend-find-gateway:$SHORT_SHA",
+      ]
+    env:
+      - "CLOUDSDK_COMPUTE_ZONE=$_CLOUDSDK_COMPUTE_ZONE"
+      - "CLOUDSDK_CONTAINER_CLUSTER=$_CLOUDSDK_CONTAINER_CLUSTER"

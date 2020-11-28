@@ -1,0 +1,77 @@
+version: '3'
+services:
+  gateway:
+    build:
+      context: ./gateway
+      dockerfile: ./Dockerfile
+      args:
+        GITHUB_ACCESS_TOKEN: ${GITHUB_ACCESS_TOKEN}
+    container_name: 2929gateway
+    depends_on:
+      - "mysql"
+    ports:
+      - "8080:8080"
+    environment:
+      - "ENV=LOCAL"
+      - "ACCOUNT_ADDR=account:50051"
+      - "TREND_ADDR=trend:50052"
+      - "REDIS_ADDR=redis:6379"
+    volumes:
+      - ./gateway:/go/src/github.com/TrendFindProject/tf_backend/gateway
+  account:
+    build:
+      context: ./account
+      dockerfile: ./Dockerfile
+      args:
+        GITHUB_ACCESS_TOKEN: ${GITHUB_ACCESS_TOKEN}
+    container_name: 2929account
+    depends_on:
+      - "mysql"
+    ports:
+      - "50051:50051"
+    environment:
+      - "ENV=LOCAL"
+      - "PORT=:50051"
+      - "JWT_SECRET_KEY=${JWT_SECRET_KEY}"
+      - "SEND_GRID_API_KEY=${SEND_GRID_API_KEY}"
+    volumes:
+      - ./account:/go/src/github.com/TrendFindProject/tf_backend/account
+  trend:
+    build:
+      context: ./trend
+      dockerfile: ./Dockerfile
+      args:
+        GITHUB_ACCESS_TOKEN: ${GITHUB_ACCESS_TOKEN}
+    container_name: 2929trend
+    depends_on:
+      - "mysql"
+    ports:
+      - "50052:50052"
+    environment:
+      - "ENV=LOCAL"
+      - "PORT=:50052"
+    volumes:
+      - ./trend:/go/src/github.com/TrendFindProject/tf_backend/trend
+  mysql:
+    build:
+      context: ./
+      dockerfile: mysql/Dockerfile
+    container_name: mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: account
+      MYSQL_USER: 2929
+      MYSQL_PASSWORD: 2929
+      TZ: "Asia/Tokyo"
+    ports:
+      - "3306:3306"
+    volumes:
+      - ./mysql/data:/var/lib/mysql
+  redis:
+    image: "redis:latest"
+    container_name: 2929redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - ./redis/data:/data

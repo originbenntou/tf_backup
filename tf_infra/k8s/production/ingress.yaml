@@ -1,0 +1,23 @@
+kind: Ingress
+apiVersion: extensions/v1beta1
+metadata:
+  name: trend-find-ingress
+  annotations:
+    kubernetes.io/ingress.global-static-ip-name: trend-find-ip
+    networking.gke.io/managed-certificates: trend-find-cert
+spec:
+  rules:
+    - host: trend-find.work
+      http:
+        paths:
+          - path: /*
+            backend:
+              serviceName: frontend
+              servicePort: 80
+    - host: api.trend-find.work
+      http:
+        paths:
+          - path: /*
+            backend:
+              serviceName: gateway
+              servicePort: 8080

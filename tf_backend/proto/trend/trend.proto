@@ -1,0 +1,84 @@
+syntax = "proto3";
+
+package trend;
+
+option go_package = "github.com/TrendFindProject/tf_backend/proto/trend/go";
+
+message Suggest {
+    string suggestWord = 1;
+    repeated ChildSuggest childSuggests = 2;
+}
+
+message ChildSuggest {
+    string childSuggestWord = 1;
+    Growth growth = 2;
+    Graphs graphs = 3;
+}
+
+message Growth {
+    Arrow short = 1;
+    Arrow medium = 2;
+    Arrow long = 3;
+}
+
+message Graphs {
+    repeated Graph short = 1;
+    repeated Graph medium = 2;
+    repeated Graph long = 3;
+}
+
+message Graph {
+    string date = 1;
+    int64 value = 2;
+}
+
+enum Arrow {
+    UP = 0;
+    FLAT = 1;
+    DOWN = 2;
+}
+
+message History {
+    uint64 searchId = 1;
+    string searchWord = 2;
+    string date = 3;
+    Progress status = 4;
+    bool isRead = 5;
+}
+
+enum Progress {
+    IN_PROGRESS = 0;
+    COMPLETED = 1;
+}
+
+message TrendSearchRequest {
+    string searchWord = 1;
+    string userUuid = 2;
+}
+
+message TrendSearchResponse {
+    uint64 searchId = 1;
+}
+
+message TrendSuggestRequest {
+    uint64 searchId = 1;
+    string userUuid = 2;
+}
+
+message TrendSuggestResponse {
+    repeated Suggest suggest = 1;
+}
+
+message TrendHistoryRequest {
+    string userUuid = 1;
+}
+
+message TrendHistoryResponse {
+    repeated History histories = 1;
+}
+
+service TrendService {
+    rpc TrendSearch (TrendSearchRequest) returns (TrendSearchResponse);
+    rpc TrendSuggest (TrendSuggestRequest) returns (TrendSuggestResponse);
+    rpc TrendHistory (TrendHistoryRequest) returns (TrendHistoryResponse);
+}

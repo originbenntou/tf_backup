@@ -1,0 +1,12 @@
+version: "3"
+services:
+  # フロントエンド
+  frontend:
+    container_name: frontend
+    image: node:12
+    volumes:
+      - ./frontend:/usr/src/app
+    working_dir: /usr/src/app
+    command: bash -c "npm ci && npm run build && npm run start"
+    ports:
+      - 3000:3000

@@ -1,0 +1,38 @@
+kind: Service
+apiVersion: v1
+metadata:
+  name: frontend
+spec:
+  type: NodePort
+  ports:
+    - name: frontend-port
+      port: 80
+      protocol: TCP
+      targetPort: 3000
+      nodePort: 30080
+  selector:
+    app: deployment-trend-find-frontend
+
+---
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: frontend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: deployment-trend-find-frontend
+  template:
+    metadata:
+      labels:
+        app: deployment-trend-find-frontend
+    spec:
+      containers:
+        - image: tf_frontend
+          imagePullPolicy: Never
+          name: frontend
+          ports:
+            - containerPort: 3000
+              name: frontend-port
+              protocol: TCP

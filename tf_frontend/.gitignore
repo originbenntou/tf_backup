@@ -1,0 +1,8 @@
+.DS_Store
+
+# node.js関係
+node_modules
+npm-debug.log*
+
+# vscode関係
+.vscode

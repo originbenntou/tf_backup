@@ -1,0 +1,8 @@
+apiVersion: networking.gke.io/v1beta2
+kind: ManagedCertificate
+metadata:
+  name: trend-find-cert
+spec:
+  domains:
+    - trend-find.work
+    - api.trend-find.work

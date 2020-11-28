@@ -1,0 +1,279 @@
+kind: PersistentVolume
+apiVersion: v1
+metadata:
+  name: mysql-pv
+  labels:
+    type: local
+spec:
+  storageClassName: manual
+  accessModes:
+    - ReadWriteOnce
+  capacity:
+    storage: 1Gi
+  hostPath:
+    path: /mnt/data/mysql
+
+---
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: mysql-pvc
+spec:
+  storageClassName: manual
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+
+---
+kind: ConfigMap
+apiVersion: v1
+data:
+  my.cnf: |-
+    [mysqld]
+    character-set-server=utf8mb4
+    explicit_defaults_for_timestamp=1
+
+    [mysql]
+    default-character-set=utf8mb4
+
+    [client]
+    default-character-set=utf8mb4
+metadata:
+  name: mysql-config
+
+---
+kind: ConfigMap
+apiVersion: v1
+data:
+  00.account.sql: |-
+    DROP DATABASE IF EXISTS account;
+    CREATE DATABASE account DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_bin;
+
+    use account;
+
+    DROP TABLE IF EXISTS plan;
+    CREATE TABLE plan (
+      id INT unsigned NOT NULL auto_increment COMMENT 'プランID',
+      name VARCHAR(255) NOT NULL COMMENT 'プラン名',
+      price INT unsigned NOT NULL DEFAULT 0 COMMENT 'プラン金額',
+      capacity INT unsigned  NOT NULL DEFAULT 3 COMMENT 'ログイン上限',
+      PRIMARY KEY (id)
+    ) COMMENT 'プラン情報';
+
+    DROP TABLE IF EXISTS company;
+    CREATE TABLE company (
+      id INT unsigned NOT NULL auto_increment COMMENT '会社ID',
+      name VARCHAR(255) NOT NULL COMMENT '会社名',
+      plan_id INT unsigned NOT NULL COMMENT 'プランID',
+      created_at datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '作成日時',
+      updated_at datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新日時',
+      PRIMARY KEY (id),
+      FOREIGN KEY (plan_id) REFERENCES plan(id)
+    ) COMMENT '会社情報';
+
+    DROP TABLE IF EXISTS user;
+    CREATE TABLE user (
+      id INT unsigned NOT NULL auto_increment COMMENT 'ユーザーID（使用しない）',
+      uuid VARCHAR(255) NOT NULL COMMENT 'ユニークID',
+      email VARCHAR(255) NOT NULL COMMENT 'ユーザーEmailアドレス',
+      password VARCHAR(1023) NOT NULL COMMENT 'ユーザーパスワードハッシュ',
+      name VARCHAR(255) NOT NULL COMMENT 'ユーザー名',
+      company_id INT unsigned NOT NULL COMMENT '会社ID',
+      created_at datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '作成日時',
+      updated_at datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新日時',
+      PRIMARY KEY (id),
+      UNIQUE KEY (uuid),
+      UNIQUE KEY (email),
+      FOREIGN KEY (company_id) REFERENCES company(id)
+    ) COMMENT 'ユーザー情報';
+
+    DROP TABLE IF EXISTS session;
+    CREATE TABLE session (
+      id INT unsigned NOT NULL auto_increment COMMENT 'セッションID',
+      token VARCHAR(255) NOT NULL COMMENT 'セッショントークン',
+      user_uuid VARCHAR(255) NOT NULL COMMENT 'ユーザーユニークID',
+      company_id INT unsigned NOT NULL COMMENT '会社ID',
+      created_at datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) COMMENT '作成日時（マイクロ秒）',
+      updated_at datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6) COMMENT '更新日時（マイクロ秒）',
+      PRIMARY KEY (id),
+      UNIQUE KEY (token),
+      FOREIGN KEY (user_uuid) REFERENCES user(uuid),
+      FOREIGN KEY (company_id) REFERENCES company(id)
+    ) COMMENT 'セッション情報';
+
+    DROP TABLE IF EXISTS recover_session;
+    CREATE TABLE recover_session (
+      id INT unsigned NOT NULL auto_increment COMMENT 'リカバーセッションID',
+      user_uuid VARCHAR(255) NOT NULL COMMENT 'ユーザーユニークID',
+      auth_key VARCHAR(1023) NOT NULL COMMENT 'リカバー認証キー',
+      recover_token VARCHAR(1023) NOT NULL COMMENT 'リカバートークン',
+      created_at datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) COMMENT '作成日時（マイクロ秒）',
+      updated_at datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6) COMMENT '更新日時（マイクロ秒）',
+      PRIMARY KEY (id),
+      UNIQUE KEY (user_uuid),
+      FOREIGN KEY (user_uuid) REFERENCES user(uuid)
+    ) COMMENT 'リカバーセッション情報';
+
+  00.trend.sql: |-
+    DROP DATABASE IF EXISTS trend;
+    CREATE DATABASE trend DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_bin;
+
+    use trend;
+
+    DROP TABLE IF EXISTS search;
+    CREATE TABLE search (
+      id INT unsigned NOT NULL auto_increment COMMENT '検索ID',
+      search_word VARCHAR(255) NOT NULL COMMENT '検索ワード',
+      date DATE NOT NULL COMMENT '検索開始日',
+      status tinyint(1) NOT NULL DEFAULT 0 COMMENT '検索進捗 0:検索進行中 1:検索完了',
+      created_at datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '作成日時',
+      updated_at datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新日時',
+      PRIMARY KEY (id),
+      UNIQUE KEY (search_word, date)
+    ) COMMENT '検索情報';
+
+    DROP TABLE IF EXISTS suggest;
+    CREATE TABLE suggest (
+      id INT unsigned NOT NULL auto_increment COMMENT 'サジェストID',
+      search_id INT unsigned NOT NULL COMMENT '検索ID',
+      suggest_word VARCHAR(255) NOT NULL COMMENT 'サジェストワード(検索1件あたりサジェストワード6個)',
+      created_at datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '作成日時',
+      updated_at datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新日時',
+      PRIMARY KEY (id),
+      FOREIGN KEY (search_id) REFERENCES search(id)
+    ) COMMENT 'サジェスト';
+
+    DROP TABLE IF EXISTS child_suggest;
+    CREATE TABLE child_suggest (
+      id INT unsigned NOT NULL auto_increment COMMENT '子サジェストID',
+      suggest_id INT unsigned NOT NULL COMMENT 'サジェストID',
+      child_suggest_word VARCHAR(255) NOT NULL COMMENT '小サジェストワード(サジェストワード1個あたり小サジェストワード6個)',
+      short tinyint(1) NOT NULL DEFAULT 0 COMMENT '短期伸び率 0:UP,1:FLAT,2:DOWN',
+      medium tinyint(1) NOT NULL DEFAULT 0 COMMENT '中期伸び率 0:UP,1:FLAT,2:DOWN',
+      `long` tinyint(1) NOT NULL DEFAULT 0 COMMENT '長期伸び率 0:UP,1:FLAT,2:DOWN',
+      short_graphs VARCHAR(2047) DEFAULT NULL COMMENT '短期グラフ情報JSON配列',
+      medium_graphs VARCHAR(2047) DEFAULT NULL COMMENT '中期グラフ情報JSON配列',
+      long_graphs VARCHAR(4095) DEFAULT NULL COMMENT '長期グラフ情報JSON配列',
+      created_at datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '作成日時',
+      updated_at datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新日時',
+      PRIMARY KEY (id),
+      FOREIGN KEY (suggest_id) REFERENCES suggest(id)
+    ) COMMENT '子サジェスト';
+
+    DROP TABLE IF EXISTS history;
+    CREATE TABLE history (
+      id INT unsigned NOT NULL auto_increment COMMENT 'トレンド検索履歴ID',
+      user_uuid VARCHAR(255) NOT NULL COMMENT 'ユーザーユニークID',
+      search_id INT unsigned NOT NULL COMMENT '検索ID',
+      created_at datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '作成日時',
+      updated_at datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新日時',
+      PRIMARY KEY (id),
+      UNIQUE KEY (user_uuid, search_id),
+      FOREIGN KEY (user_uuid) REFERENCES account.user(uuid),
+      FOREIGN KEY (search_id) REFERENCES search(id)
+    ) COMMENT 'トレンド検索履歴';
+
+    /* child_suggestのgraph_longの文字数が大きすぎるため、制約を解除 */
+    SET GLOBAL sql_mode = 'NO_ENGINE_SUBSTITUTION';
+
+
+  02.insert_account.sql: |-
+    use account;
+    INSERT INTO plan VALUES (0, "Standard", 30000, 3);
+    INSERT INTO plan VALUES (0, "Advanced", 50000, 5);
+    INSERT INTO plan VALUES (0, "Enterprise", 100000, 10);
+
+    INSERT INTO company VALUES (0, "2929Acompany", 1, "2020-04-01 10:00:00", "2020-04-01 10:00:00");
+    INSERT INTO company VALUES (0, "2929Bcompany", 2, "2020-04-01 10:00:00", "2020-04-01 10:00:00");
+    INSERT INTO company VALUES (0, "2929Ccompany", 3, "2020-04-01 10:00:00", "2020-04-01 10:00:00");
+
+    /* テスト用アカウント */
+    INSERT INTO user VALUES (0, "9bsv0s2v7s8002m4ap2g", "2929admin@trend-find.work", "$2a$10$C8nTGobdJ1OZGcPA7emt1ORRUoBEagkYS4Xh/e.97wtYRuByMeKhO", "Admin", "1", "2020-04-01 10:00:00", "2020-04-01 10:00:00");
+
+  99.grant_user.sql: |-
+    GRANT ALL ON `account`.* TO '2929'@'%' ;
+    GRANT ALL ON `trend`.* TO '2929'@'%' ;
+
+metadata:
+  name: mysql-init-config
+
+---
+kind: Secret
+apiVersion: v1
+data:
+  MYSQL_DATABASE: YWNjb3VudA==
+  MYSQL_PASSWORD: MjkyOQ==
+  MYSQL_USER: MjkyOQ==
+  MYSQL_ROOT_PASSWORD: cm9vdA==
+  TZ: QXNpYS9Ub2t5bw==
+metadata:
+  name: mysql-secret
+type: Opaque
+
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: mysql
+spec:
+  type: NodePort
+  ports:
+    - name: mysql-port
+      nodePort: 30306
+      port: 3306
+      protocol: TCP
+      targetPort: 3306
+  selector:
+    database: deployment-database-mysql
+
+---
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: mysql
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      database: deployment-database-mysql
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        database: deployment-database-mysql
+    spec:
+      containers:
+        - envFrom:
+            - secretRef:
+                name: mysql-secret
+                optional: false
+          image: mysql:5.7
+          imagePullPolicy: Always
+          name: mysql
+          ports:
+            - containerPort: 3306
+          volumeMounts:
+            - mountPath: /var/lib/mysql
+              name: mysql-storage
+            - mountPath: /etc/mysql/conf.d/my.cnf
+              name: my-conf
+              readOnly: true
+              subPath: my.cnf
+            - mountPath: /docker-entrypoint-initdb.d/
+              name: mysql-init-data
+              readOnly: true
+      volumes:
+        - name: mysql-storage
+          persistentVolumeClaim:
+            claimName: mysql-pvc
+        - configMap:
+            name: mysql-config
+            optional: false
+          name: my-conf
+        - configMap:
+            name: mysql-init-config
+            optional: false
+          name: mysql-init-data

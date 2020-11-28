@@ -1,0 +1,44 @@
+kind: Service
+apiVersion: v1
+metadata:
+  name: trend
+spec:
+  type: ClusterIP
+  ports:
+    - name: trend-port
+      port: 50052
+      protocol: TCP
+      targetPort: 50052
+  selector:
+    app: deployment-trend-find-trend
+
+---
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: trend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: deployment-trend-find-trend
+  template:
+    metadata:
+      labels:
+        app: deployment-trend-find-trend
+    spec:
+      containers:
+        - env:
+            - name: ENV
+              value: LOCAL
+            - name: PORT
+              value: ":50052"
+            - name: REDIS_ADDR
+              value: redis:6379
+          image: tf_backend_trend
+          imagePullPolicy: Never
+          name: trend
+          ports:
+            - containerPort: 50052
+              name: trend-port
+              protocol: TCP

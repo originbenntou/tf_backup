@@ -1,0 +1,47 @@
+kind: Service
+apiVersion: v1
+metadata:
+  name: gateway
+spec:
+  type: NodePort
+  ports:
+    - name: gateway-port
+      port: 8080
+      protocol: TCP
+      targetPort: 8080
+      nodePort: 30880
+  selector:
+    app: deployment-trend-find-gateway
+
+---
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: gateway
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: deployment-trend-find-gateway
+  template:
+    metadata:
+      labels:
+        app: deployment-trend-find-gateway
+    spec:
+      containers:
+        - env:
+            - name: ACCOUNT_ADDR
+              value: account:50051
+            - name: TREND_ADDR
+              value: trend:50052
+            - name: ENV
+              value: LOCAL
+            - name: REDIS_ADDR
+              value: redis:6379
+          image: tf_backend_gateway
+          imagePullPolicy: Never
+          name: gateway
+          ports:
+            - containerPort: 8080
+              name: gateway-port
+              protocol: TCP

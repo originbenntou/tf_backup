@@ -1,0 +1,81 @@
+kind: ConfigMap
+apiVersion: v1
+data:
+  trend.env: PRODUCTION
+  trend.port: ":50052"
+metadata:
+  name: trend-config
+
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: trend
+spec:
+  type: ClusterIP
+  ports:
+    - name: trend-port
+      port: 50052
+      protocol: TCP
+      targetPort: 50052
+  selector:
+    app: deployment-trend-find-trend
+
+---
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: trend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: deployment-trend-find-trend
+  template:
+    metadata:
+      labels:
+        app: deployment-trend-find-trend
+    spec:
+      containers:
+        - image: gcr.io/aqueous-nebula-278307/trend-find-trend:latest
+          imagePullPolicy: Always
+          name: trend
+          ports:
+            - containerPort: 50052
+              name: trend-port
+              protocol: TCP
+          resources:
+            requests:
+              cpu: 20m
+          readinessProbe:
+            tcpSocket:
+              port: 50052
+          env:
+            - name: ENV
+              valueFrom:
+                configMapKeyRef:
+                  key: trend.env
+                  name: trend-config
+            - name: PORT
+              valueFrom:
+                configMapKeyRef:
+                  key: trend.port
+                  name: trend-config
+        # CloudSQLProxy
+        - image: gcr.io/cloudsql-docker/gce-proxy:1.16
+          name: cloudsql-proxy
+          command: ["/cloud_sql_proxy", "-instances=aqueous-nebula-278307:asia-northeast1:trend-finder-mysql=tcp:3306", "-credential_file=/secrets/cloudsql/trend-find.json"]
+          securityContext:
+            runAsUser: 2  # non-root user
+            allowPrivilegeEscalation: false
+          resources:
+            requests:
+              cpu: 20m
+          volumeMounts:
+            - name: cloudsql-instance-credentials
+              mountPath: /secrets/cloudsql
+              readOnly: true
+      volumes:
+        - name: cloudsql-instance-credentials
+          secret:
+            secretName: cloudsql-instance-credentials

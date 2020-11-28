@@ -1,0 +1,48 @@
+kind: Service
+apiVersion: v1
+metadata:
+  name: frontend
+spec:
+  type: NodePort
+  ports:
+    - name: frontend-port
+      port: 80
+      protocol: TCP
+      targetPort: 3000
+  selector:
+    app: deployment-trend-find-frontend
+
+---
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: frontend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: deployment-trend-find-frontend
+  template:
+    metadata:
+      labels:
+        app: deployment-trend-find-frontend
+    spec:
+      containers:
+        - image: gcr.io/aqueous-nebula-278307/trend-find-frontend:latest
+          imagePullPolicy: Always
+          name: frontend
+          ports:
+            - containerPort: 3000
+              name: frontend-port
+              protocol: TCP
+          resources:
+            requests:
+              cpu: 20m
+            limits:
+              cpu: 200m
+          readinessProbe:
+            httpGet:
+              port: 3000
+              path: /health
+              scheme: HTTP
+            timeoutSeconds: 20

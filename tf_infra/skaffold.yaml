@@ -1,0 +1,39 @@
+apiVersion: skaffold/v1beta12
+kind: Config
+build:
+  tagPolicy:
+    sha256: {}
+  artifacts:
+    - image: tf_backend_account
+      context: ../tf_backend/account
+      docker:
+        dockerfile: ./docker-local/Dockerfile
+        buildArgs:
+          GITHUB_ACCESS_TOKEN: '{{.GITHUB_ACCESS_TOKEN}}'
+    - image: tf_backend_trend
+      context: ../tf_backend/trend
+      docker:
+        dockerfile: ./docker-local/Dockerfile
+        buildArgs:
+          GITHUB_ACCESS_TOKEN: '{{.GITHUB_ACCESS_TOKEN}}'
+    - image: tf_backend_gateway
+      context: ../tf_backend/gateway
+      docker:
+        dockerfile: ./docker-local/Dockerfile
+        buildArgs:
+          GITHUB_ACCESS_TOKEN: '{{.GITHUB_ACCESS_TOKEN}}'
+    - image: tf_frontend
+      context: ../tf_frontend
+      docker:
+        dockerfile: docker-local/Dockerfile
+  local:
+    push: false
+    useBuildkit: true
+deploy:
+  kubectl:
+    manifests:
+      - k8s/develop/account.yaml
+      - k8s/develop/trend.yaml
+      - k8s/develop/gateway.yaml
+      - k8s/develop/frontend.yaml
+      - k8s/develop/database/*

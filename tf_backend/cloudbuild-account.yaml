@@ -1,0 +1,36 @@
+steps:
+  - name: "gcr.io/cloud-builders/docker"
+    args:
+      [
+        "build",
+        "-t",
+        "gcr.io/$PROJECT_ID/trend-find-account:$SHORT_SHA",
+        "-t",
+        "gcr.io/$PROJECT_ID/trend-find-account:latest",
+        "--build-arg",
+        "GITHUB_ACCESS_TOKEN=$_GITHUB_ACCESS_TOKEN",
+        "--build-arg",
+        "JWT_SECRET_KEY=$_JWT_SECRET_KEY",
+        "--build-arg",
+        "SEND_GRID_API_KEY=$_SEND_GRID_API_KEY",
+        ".",
+      ]
+    dir: "account"
+  # upload image
+  - name: "gcr.io/cloud-builders/docker"
+    args: ["push", "gcr.io/$PROJECT_ID/trend-find-account:$SHORT_SHA"]
+  - name: "gcr.io/cloud-builders/docker"
+    args: ["push", "gcr.io/$PROJECT_ID/trend-find-account:latest"]
+  # upload gke
+  - name: "gcr.io/cloud-builders/kubectl"
+    args:
+      [
+        "set",
+        "image",
+        "deployment",
+        "account",
+        "account=gcr.io/$PROJECT_ID/trend-find-account:$SHORT_SHA",
+      ]
+    env:
+      - "CLOUDSDK_COMPUTE_ZONE=$_CLOUDSDK_COMPUTE_ZONE"
+      - "CLOUDSDK_CONTAINER_CLUSTER=$_CLOUDSDK_CONTAINER_CLUSTER"

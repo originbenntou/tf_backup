@@ -1,0 +1,78 @@
+kind: ConfigMap
+apiVersion: v1
+data:
+  gateway.env: PRODUCTION
+  account.address: account:50051
+  trend.address: trend:50052
+  redis.address: 10.243.43.235:6379
+metadata:
+  name: gateway-config
+
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: gateway
+spec:
+  type: NodePort
+  ports:
+    - name: gateway-port
+      port: 8080
+      protocol: TCP
+      targetPort: 8080
+  selector:
+    app: deployment-trend-find-gateway
+
+---
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: gateway
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: deployment-trend-find-gateway
+  template:
+    metadata:
+      labels:
+        app: deployment-trend-find-gateway
+    spec:
+      containers:
+        - image: gcr.io/aqueous-nebula-278307/trend-find-gateway:latest
+          imagePullPolicy: Always
+          name: gateway
+          ports:
+            - containerPort: 8080
+              name: gateway-port
+              protocol: TCP
+          resources:
+            requests:
+              cpu: 20m
+          readinessProbe:
+            httpGet:
+              port: 8080
+              path: /health
+              scheme: HTTP
+            timeoutSeconds: 20
+          env:
+            - name: ENV
+              valueFrom:
+                configMapKeyRef:
+                  key: gateway.env
+                  name: gateway-config
+            - name: ACCOUNT_ADDR
+              valueFrom:
+                configMapKeyRef:
+                  key: account.address
+                  name: gateway-config
+            - name: TREND_ADDR
+              valueFrom:
+                configMapKeyRef:
+                  key: trend.address
+                  name: gateway-config
+            - name: REDIS_ADDR
+              valueFrom:
+                configMapKeyRef:
+                  key: redis.address
+                  name: gateway-config

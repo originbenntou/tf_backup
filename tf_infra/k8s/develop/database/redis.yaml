@@ -1,0 +1,74 @@
+kind: PersistentVolume
+apiVersion: v1
+metadata:
+  name: redis-pv
+  labels:
+    type: local
+spec:
+  storageClassName: manual
+  accessModes:
+    - ReadWriteOnce
+  capacity:
+    storage: 1Gi
+  hostPath:
+    path: /mnt/data/redis
+
+---
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: redis-pvc
+spec:
+  storageClassName: manual
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: redis
+spec:
+  type: NodePort
+  ports:
+    - name: redis-port
+      nodePort: 30379
+      port: 6379
+      protocol: TCP
+      targetPort: 6379
+  selector:
+    database: deployment-database-redis
+
+---
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: redis
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      database: deployment-database-redis
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        database: deployment-database-redis
+    spec:
+      containers:
+        - image: redis:6
+          imagePullPolicy: Always
+          name: redis
+          ports:
+            - containerPort: 6379
+          volumeMounts:
+            - mountPath: /data
+              name: redis-storage
+      volumes:
+        - name: redis-storage
+          persistentVolumeClaim:
+            claimName: redis-pvc

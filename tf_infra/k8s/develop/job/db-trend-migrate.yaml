@@ -1,0 +1,41 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: db-account-migrate
+spec:
+  template:
+    spec:
+      initContainers:
+        - name: git
+          image: alpine/git
+          command: [
+            "/bin/sh",
+            "-c"
+          ]
+          args: [
+            "git config --global url.'https://717b19670b0b73a8a7a376ce791441dc166538f5@github.com'.insteadOf 'https://github.com' \
+              && git clone https://github.com/TrendFindProject/tf_backend.git /tmp/git/"
+          ]
+          volumeMounts:
+            - name: repo
+              mountPath: /tmp/git/
+      containers:
+        - name: db-account-migrate
+          image: migrate/migrate
+          command: [
+            "migrate",
+            "-source",
+            "file:///repo/mysql/migrations/",
+            "-database",
+            "mysql://2929:2929@tcp(mysql:3306)/trend?charset=utf8mb4&collation=utf8mb4_general_ci&parseTime=true",
+            "up"
+          ]
+          volumeMounts:
+            - name: repo
+              mountPath: /repo
+      volumes:
+        - name: repo
+          emptyDir: {}
+      restartPolicy: Never
+  backoffLimit: 0
+  completions: 1

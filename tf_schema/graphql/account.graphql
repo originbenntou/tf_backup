@@ -1,0 +1,89 @@
+# 正常系 httpステータス: 200
+# 異常系1 httpステータス: 200以外
+# 異常系2 httpステータス: 200, code: (後述)
+
+type Query {
+  # ログインを実行し、そのセッションIDとなるトークンを返却
+  # 返却code一覧
+  ## 3.  入力パラメータエラー
+  ## 5.  ユーザー未存在エラー
+  ## 7.  ログイン上限超過エラー
+  ## 13. サーバーエラー
+  ## 16. パスワード照合エラー
+  ### 上記以外は未知のエラー
+  verifyUser(
+    # ユーザーメールアドレス
+    # Validate is valid e-mail address
+    email: String!,
+    # ユーザーパスワード
+    # Validate is half-width English numbers and letters, using more than 8 characters but less than 32
+    password: String!
+  ): String!
+
+  # パスワード再発行用のメールを送信
+  # emailとnameがuserテーブルに存在していれば、再発行に必要な認証キーを返却
+  # 返却code一覧
+  ## 3.  入力パラメータエラー
+  ## 5.  ユーザー未存在エラー
+  ## 13. サーバーエラー
+  ### 上記以外は未知のエラー
+  sendRecoverEmail(
+    # ユーザーメールアドレス
+    # Validate is valid e-mail address
+    email: String!
+    # ユーザー名
+    name: String!
+  ): String!
+}
+
+type Mutation {
+  # ユーザーを登録し、その結果を返却
+  # 返却code一覧
+  ## 3.  入力パラメータエラー
+  ## 6.  ユーザー存在エラー
+  ## 13. サーバーエラー
+  ### 上記以外は未知のエラー
+  registerUser(
+    # User struct
+    user: User!
+  ): Boolean!
+
+  # パスワードを再発行し、その結果を返却
+  # 返却code一覧
+  ## 3.  入力パラメータエラー
+  ## 13. サーバーエラー
+  ## 16. 認証キー照合エラー
+  ### 上記以外は未知のエラー
+  recoverPassword(
+    recoverToken: String!
+    authKey: String!
+    password: String!
+  ): Boolean!
+
+  # パスワード変更し、その結果を返却
+  # 返却code一覧
+  ## 3.  入力パラメータエラー
+  ## 13. サーバーエラー
+  ## 16. 旧パスワード照合エラー
+  ### 上記以外は未知のエラー
+  modifyPassword(
+    oldPassword: String!
+    newPassword: String!
+  ): Boolean!
+}
+
+input User {
+  # ユーザーメールアドレス
+  # Validate is valid e-mail address
+  email: String!
+
+  # ユーザーパスワード
+  # Validate is half-width English numbers and letters, using more than 8 characters but less than 32
+  password: String!
+
+  # ユーザーネーム
+  name: String!
+
+  # ユーザー所属の会社ID
+  companyId: Int!
+}

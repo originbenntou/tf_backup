@@ -1,0 +1,61 @@
+syntax = "proto3";
+
+package account;
+
+option go_package = "github.com/TrendFindProject/tf_backend/proto/account/go";
+
+import "github.com/mwitkow/go-proto-validators/validator.proto";
+import "google/protobuf/empty.proto";
+
+
+message User {
+    uint64 id = 1;
+    string uuid = 2;
+    string email = 3;
+    string name = 4;
+    uint64 company_id = 5;
+}
+
+message RegisterUserRequest {
+    string email = 1 [(validator.field) = {string_not_empty: true regex: "^\\w+([-+.]\\w+)*@\\w+([-.]\\w+)*\\.\\w+([-.]\\w+)*$"}];
+    string password = 2 [(validator.field) = {string_not_empty: true regex: "^[ -~]{8,32}$"}];
+    string name = 3 [(validator.field) = {string_not_empty: true length_lt:255}];
+    uint64 company_id = 4 [(validator.field) = {int_gt: 0}];
+}
+
+message RegisterUserResponse {
+    string user_uuid = 1;
+}
+
+message VerifyUserRequest {
+    string email = 1 [(validator.field) = {string_not_empty: true regex: "^\\w+([-+.]\\w+)*@\\w+([-.]\\w+)*\\.\\w+([-.]\\w+)*$"}];
+    string password = 2 [(validator.field) = {string_not_empty: true regex: "^[ -~]{8,32}$"}];
+}
+
+message VerifyUserResponse {
+    string newToken = 1;
+    string oldToken = 2;
+    User user = 3;
+}
+
+message SendRecoverEmailRequest {
+    string email = 1 [(validator.field) = {string_not_empty: true regex: "^\\w+([-+.]\\w+)*@\\w+([-.]\\w+)*\\.\\w+([-.]\\w+)*$"}];
+    string name = 2 [(validator.field) = {string_not_empty: true length_lt:255}];
+}
+
+message SendRecoverEmailResponse {
+    string authKey = 1;
+}
+
+message RecoverPasswordRequest {
+    string recoverToken = 1;
+    string authKey = 2;
+    string password = 3 [(validator.field) = {string_not_empty: true regex: "^[ -~]{8,32}$"}];
+}
+
+service UserService {
+    rpc RegisterUser (RegisterUserRequest) returns (RegisterUserResponse);
+    rpc VerifyUser (VerifyUserRequest) returns (VerifyUserResponse);
+    rpc SendRecoverEmail (SendRecoverEmailRequest) returns (SendRecoverEmailResponse);
+    rpc RecoverPassword (RecoverPasswordRequest) returns (google.protobuf.Empty);
+}

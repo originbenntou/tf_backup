@@ -1,0 +1,1 @@
+exports.registerUser = true

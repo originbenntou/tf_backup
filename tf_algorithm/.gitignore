@@ -1,0 +1,13 @@
+.DS_Store
+__pycache__/evaluation.cpython-37.pyc
+__pycache__/functions.cpython-37.pyc
+__pycache__/get_suggest.cpython-37.pyc
+__pycache__/get_trend.cpython-37.pyc
+__pycache__/my_functions.cpython-37.pyc
+__pycache__/get_data.cpython-37.pyc
+encode_sin.csv
+sample.txt
+sample.csv
+sin.csv
+evaluation.py
+trend/*pb*

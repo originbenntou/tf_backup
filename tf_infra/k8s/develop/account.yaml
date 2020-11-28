@@ -1,0 +1,72 @@
+kind: Secret
+apiVersion: v1
+data:
+  JWT_SECRET_KEY: WFF6bmNvNmIrZG1JSWtIUjArOGliV2xoM2lPVzFrUkgyV3RZTngySEM3T3Q= #for local
+metadata:
+  name: jwt-secret-key
+type: Opaque
+
+---
+kind: Secret
+apiVersion: v1
+data:
+  SEND_GRID_API_KEY: U0cuU3U5Nk8tYzZUemlHVzFUNE54bDY5dy5Cc0dSV2dDX2JFMVdvMEUwc2xxWjBaTkZ2M0xHYjZJVnZvNGVDV3F6V1lZ #for local
+metadata:
+  name: send-grid-api-key
+type: Opaque
+
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: account
+spec:
+  type: ClusterIP
+  ports:
+    - name: account-port
+      port: 50051
+      protocol: TCP
+      targetPort: 50051
+  selector:
+    app: deployment-trend-find-account
+
+---
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: account
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: deployment-trend-find-account
+  template:
+    metadata:
+      labels:
+        app: deployment-trend-find-account
+    spec:
+      containers:
+        - env:
+            - name: ENV
+              value: LOCAL
+            - name: PORT
+              value: ":50051"
+            - name: REDIS_ADDR
+              value: redis:6379
+            - name: JWT_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  key: JWT_SECRET_KEY
+                  name: jwt-secret-key
+            - name: SEND_GRID_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  key: SEND_GRID_API_KEY
+                  name: send-grid-api-key
+          image: tf_backend_account
+          imagePullPolicy: Never
+          name: account
+          ports:
+            - containerPort: 50051
+              name: account-port
+              protocol: TCP

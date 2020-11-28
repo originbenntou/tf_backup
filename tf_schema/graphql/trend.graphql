@@ -1,0 +1,113 @@
+# 正常系 httpステータス: 200
+# 異常系1 httpステータス: 200以外
+# 異常系2 httpステータス: 200, code: (後述)
+
+type Query {
+  # ユーザーに紐づくトレンド検索の履歴を返却
+  # 返却code一覧
+  ## 3.  入力パラメータエラー
+  ## 5.  ユーザー未存在エラー
+  ## 13. サーバーエラー
+  ### 上記以外は未知のエラー
+  trendHistory: [History]!
+
+  # トレンド検索を実行し、検索結果が格納されるサジェストIDを返却
+  # 返却code一覧
+  ## 3.  入力パラメータエラー
+  ## 5.  ユーザー未存在エラー
+  ## 13. サーバーエラー
+  ### 上記以外は未知のエラー
+  trendSearch(
+    # トレンド検索キーワード
+    keyword: String!
+  ): Int!
+
+  # トレンド検索結果を返却
+  # 結果は6つのサジェストワードと36の小サジェストワードで構成
+  # 返却code一覧
+  ## 3.  入力パラメータエラー
+  ## 5.  ユーザー未存在エラー
+  ## 13. サーバーエラー
+  ### 上記以外は未知のエラー
+  trendSuggest(
+    # サジェストID
+    suggestId: Int!
+  ): [Suggest!]!
+}
+
+type History {
+  # サジェストID
+  suggestId: Int!
+
+  # トレンド検索キーワード
+  keyword: String!
+
+  # 検索開始日付
+  date: String! # フロントでパース
+
+  # トレンド検索サジェスト生成状況
+  status: Progress!
+}
+
+type Suggest {
+  # サジェストワード
+  keyword: String!
+
+  # 小サジェスト
+  childSuggests: [ChildSuggest!]!
+}
+
+type ChildSuggest {
+  # 子サジェストワード
+  word: String!
+
+  # 伸び率
+  growth: Growth!
+
+  # グラフ生成用データ
+  graphs: Graphs!
+}
+
+type Growth {
+  # 短
+  short: Arrow!
+
+  # 中
+  medium: Arrow!
+
+  # 長
+  long: Arrow!
+}
+
+type Graphs {
+  # 9日分のデータ
+  short: [Graph!]!
+
+  # 28日分のデータ
+  medium: [Graph!]!
+
+  # 90日分のデータ
+  long: [Graph!]!
+}
+
+type Graph {
+  # 日付
+  date: String! # フロントでパース
+
+  # 日付に紐づく伸び率の値
+  value: Int!
+}
+
+enum Progress {
+  # 検索進行中
+  IN_PROGRESS
+
+  # 検索完了
+  COMPLETED
+}
+
+enum Arrow {
+  UP
+  FLAT
+  DOWN
+}

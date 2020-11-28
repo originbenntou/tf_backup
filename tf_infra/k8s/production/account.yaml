@@ -1,0 +1,87 @@
+kind: ConfigMap
+apiVersion: v1
+data:
+  account.env: PRODUCTION
+  account.port: ":50051"
+  redis.address: 10.243.43.235:6379
+metadata:
+  name: account-config
+
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: account
+spec:
+  type: ClusterIP
+  ports:
+    - name: account-port
+      port: 50051
+      protocol: TCP
+      targetPort: 50051
+  selector:
+    app: deployment-trend-find-account
+
+---
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: account
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: deployment-trend-find-account
+  template:
+    metadata:
+      labels:
+        app: deployment-trend-find-account
+    spec:
+      containers:
+        - image: gcr.io/aqueous-nebula-278307/trend-find-account:latest
+          imagePullPolicy: Always
+          name: account
+          ports:
+            - containerPort: 50051
+              name: account-port
+              protocol: TCP
+          resources:
+            requests:
+              cpu: 20m
+          readinessProbe:
+            tcpSocket:
+              port: 50051
+          env:
+            - name: ENV
+              valueFrom:
+                configMapKeyRef:
+                  key: account.env
+                  name: account-config
+            - name: PORT
+              valueFrom:
+                configMapKeyRef:
+                  key: account.port
+                  name: account-config
+            - name: REDIS_ADDR
+              valueFrom:
+                configMapKeyRef:
+                  key: redis.address
+                  name: account-config
+        # CloudSQLProxy
+        - image: gcr.io/cloudsql-docker/gce-proxy:1.16
+          name: cloudsql-proxy
+          command: ["/cloud_sql_proxy", "-instances=aqueous-nebula-278307:asia-northeast1:trend-finder-mysql=tcp:3306", "-credential_file=/secrets/cloudsql/trend-find.json"]
+          securityContext:
+            runAsUser: 2  # non-root user
+            allowPrivilegeEscalation: false
+          resources:
+            requests:
+              cpu: 20m
+          volumeMounts:
+            - name: cloudsql-instance-credentials
+              mountPath: /secrets/cloudsql
+              readOnly: true
+      volumes:
+        - name: cloudsql-instance-credentials
+          secret:
+            secretName: cloudsql-instance-credentials

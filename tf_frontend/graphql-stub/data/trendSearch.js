@@ -1,0 +1,1 @@
+exports.trendSearch = 99;

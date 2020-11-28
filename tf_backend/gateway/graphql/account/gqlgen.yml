@@ -1,0 +1,30 @@
+schema: account.graphql
+
+exec:
+  filename: ./generated/generated.go
+  package: generated
+
+model:
+  filename: ./model/models_gen.go
+  package: model
+
+#resolver:
+#  layout: follow-schema
+#  dir: ./
+#  package: account
+
+autobind:
+  - "github.com/TrendFindProject/tf_backend/gateway/graphql/account"
+
+models:
+  ID:
+    model:
+      - github.com/99designs/gqlgen/graphql.ID
+      - github.com/99designs/gqlgen/graphql.Int
+      - github.com/99designs/gqlgen/graphql.Int64
+      - github.com/99designs/gqlgen/graphql.Int32
+  Int:
+    model:
+      - github.com/99designs/gqlgen/graphql.Int
+      - github.com/99designs/gqlgen/graphql.Int64
+      - github.com/99designs/gqlgen/graphql.Int32
